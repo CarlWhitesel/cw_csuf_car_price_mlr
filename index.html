@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Price Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── TOKENS ─── */
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #151820;
+      --surface2:  #1c2030;
+      --border:    #252a3a;
+      --accent:    #e8c547;
+      --accent2:   #4fd1a5;
+      --muted:     #5a6278;
+      --text:      #dce3f0;
+      --text-dim:  #8b95ae;
+      --red:       #f06060;
+      --radius:    10px;
+      --track-h:   4px;
+      --thumb-r:   12px;
+    }
+
+    /* ─── RESET ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 0 0 80px;
+      line-height: 1.6;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      padding: 60px 40px 50px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 80% 50%, rgba(232,197,71,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 50%, rgba(79,209,165,.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-label {
+      font-size: 11px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.6rem);
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text);
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero-sub {
+      margin-top: 14px;
+      color: var(--text-dim);
+      font-size: 13px;
+      max-width: 520px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(232,197,71,.12);
+      border: 1px solid rgba(232,197,71,.3);
+      color: var(--accent);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-top: 20px;
+      letter-spacing: .05em;
+    }
+    .badge::before { content: '⚠'; font-size: 12px; }
+
+    /* ─── LAYOUT ─── */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 0;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 40px 0;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; padding: 24px 20px 0; }
+      .hero { padding: 40px 20px 36px; }
+    }
+
+    /* ─── CONTROLS PANEL ─── */
+    .controls { padding-right: 40px; }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .slider-group {
+      margin-bottom: 28px;
+    }
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+    .slider-label {
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: .05em;
+    }
+    .slider-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+      min-width: 60px;
+      text-align: right;
+    }
+    .slider-value .unit {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 3px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    /* Custom range */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: var(--track-h);
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: calc(var(--thumb-r) * 2);
+      height: calc(var(--thumb-r) * 2);
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,197,71,.2);
+      transition: box-shadow .15s, transform .15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 0 6px rgba(232,197,71,.25);
+      transform: scale(1.1);
+    }
+    input[type=range]::-moz-range-thumb {
+      width: calc(var(--thumb-r) * 2);
+      height: calc(var(--thumb-r) * 2);
+      border-radius: 50%;
+      border: none;
+      background: var(--accent);
+    }
+
+    /* Track fill using CSS custom property set by JS */
+    input[type=range].filled {
+      background: linear-gradient(
+        to right,
+        var(--accent) 0%,
+        var(--accent) var(--pct, 50%),
+        var(--border) var(--pct, 50%),
+        var(--border) 100%
+      );
+    }
+
+    /* Toggle for Hybrid */
+    .toggle-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .toggle-label { font-size: 12px; color: var(--text-dim); letter-spacing: .05em; }
+    .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+    .toggle-status {
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      min-width: 28px;
+      text-align: right;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 12px;
+      transition: background .2s;
+    }
+    .slider-bg::before {
+      content: '';
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      top: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: transform .2s, background .2s;
+    }
+    .switch input:checked + .slider-bg { background: rgba(79,209,165,.25); border: 1px solid var(--accent2); }
+    .switch input:checked + .slider-bg::before { transform: translateX(20px); background: var(--accent2); }
+
+    /* ─── OUTPUT PANEL ─── */
+    .output-panel {
+      position: sticky;
+      top: 30px;
+      align-self: start;
+    }
+    .result-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .result-top {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-eyebrow {
+      font-size: 10px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .result-price {
+      font-family: 'Syne', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      transition: all .25s;
+    }
+    .result-price .cents { font-size: 1.4rem; opacity: .7; }
+    .result-ci {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .ci-range {
+      display: flex;
+      gap: 16px;
+      margin-top: 6px;
+    }
+    .ci-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 14px;
+      flex: 1;
+    }
+    .ci-item-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; letter-spacing: .1em; }
+    .ci-item-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .result-bottom { padding: 20px 28px; }
+    .formula-title {
+      font-size: 10px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .formula-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--text-dim);
+      overflow-x: auto;
+    }
+    .formula-box .hl { color: var(--accent2); }
+    .formula-box .val { color: var(--accent); }
+
+    .log-val {
+      margin-top: 14px;
+      background: var(--surface2);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+    }
+    .log-val span { color: var(--text); font-weight: 700; }
+
+    /* ─── COEFF EDITOR ─── */
+    .coeff-section {
+      margin-top: 40px;
+      padding: 0;
+    }
+    .coeff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 900px) { .coeff-grid { grid-template-columns: 1fr; } }
+    .coeff-item label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .coeff-item input[type=number] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .coeff-item input[type=number]:focus { border-color: var(--accent); }
+    .coeff-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .coeff-hint code {
+      background: var(--surface2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent2);
+      font-size: 11px;
+    }
+    .rse-row {
+      margin-top: 12px;
+    }
+    .rse-row label {
+      font-size: 10px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .rse-row input[type=number] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      padding: 9px 12px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .rse-row input:focus { border-color: var(--accent); }
+
+    /* divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 40px 0 36px;
+    }
+
+    /* animate price change */
+    @keyframes flash {
+      0%   { color: var(--accent2); }
+      100% { color: var(--accent); }
+    }
+    .flash { animation: flash .3s ease-out; }
+  </style>
+</head>
+<body>
+
+<!-- ─── HERO ─── -->
+<header class="hero">
+  <p class="hero-label">Regression Model · WLS · log(SRP)</p>
+  <h1>Car Price<br><span>Predictor</span></h1>
+  <p class="hero-sub">
+    Weighted least-squares model predicting suggested retail price from vehicle specs.
+    Adjust sliders to see the predicted price update in real time.
+  </p>
+  <div class="badge">Paste your R coefficients below to calibrate this tool</div>
+</header>
+
+<!-- ─── MAIN LAYOUT ─── -->
+<div class="layout">
+
+  <!-- LEFT: SLIDERS -->
+  <div class="controls">
+    <p class="section-title">Vehicle Specifications</p>
+
+    <!-- Hybrid toggle -->
+    <div class="toggle-row">
+      <span class="toggle-label">HYBRID POWERTRAIN</span>
+      <div class="toggle-wrap">
+        <span class="toggle-status" id="hybrid-status">No</span>
+        <label class="switch">
+          <input type="checkbox" id="hybrid-toggle" onchange="updateAll()" />
+          <span class="slider-bg"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Engine Size -->
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">ENGINE SIZE</span>
+        <span class="slider-value" id="val-engine">3.5<span class="unit">L</span></span>
+      </div>
+      <input type="range" id="sl-engine" class="filled" min="1.0" max="8.0" step="0.1" value="3.5"
+             oninput="syncSlider(this,'val-engine','L','');updateAll()"/>
+    </div>
+
+    <!-- Cylinders -->
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">CYLINDERS</span>
+        <span class="slider-value" id="val-cyl">6<span class="unit">cyl</span></span>
+      </div>
+      <input type="range" id="sl-cyl" class="filled" min="3" max="12" step="1" value="6"
+             oninput="syncSlider(this,'val-cyl','cyl','');updateAll()"/>
+    </div>
+
+    <!-- Horsepower -->
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">HORSEPOWER</span>
+        <span class="slider-value" id="val-hp">210<span class="unit">hp</span></span>
+      </div>
+      <input type="range" id="sl-hp" class="filled" min="50" max="600" step="5" value="210"
+             oninput="syncSlider(this,'val-hp','hp','');updateAll()"/>
+    </div>
+
+    <!-- Weight -->
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">WEIGHT</span>
+        <span class="slider-value" id="val-weight">4210<span class="unit">lbs</span></span>
+      </div>
+      <input type="range" id="sl-weight" class="filled" min="1500" max="7000" step="10" value="4210"
+             oninput="syncSlider(this,'val-weight','lbs','');updateAll()"/>
+    </div>
+
+    <!-- Wheelbase -->
+    <div class="slider-group">
+      <div class="slider-header">
+        <span class="slider-label">WHEELBASE</span>
+        <span class="slider-value" id="val-wb">115<span class="unit">in</span></span>
+      </div>
+      <input type="range" id="sl-wb" class="filled" min="85" max="145" step="1" value="115"
+             oninput="syncSlider(this,'val-wb','in','');updateAll()"/>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ─── COEFFICIENT EDITOR ─── -->
+    <div class="coeff-section">
+      <p class="section-title">Model Coefficients</p>
+      <p class="coeff-hint">
+        Run <code>model_weighted_v2$coefficients</code> and <code>summary(model_weighted_v2)$sigma</code>
+        in R, then paste your values here.
+      </p>
+      <div class="coeff-grid">
+        <div class="coeff-item">
+          <label>β₀ Intercept</label>
+          <input type="number" id="b-intercept" value="8.5" step="0.0001" oninput="updateAll()"/>
+        </div>
+        <div class="coeff-item">
+          <label>β₁ Hybrid</label>
+          <input type="number" id="b-hybrid" value="0.12" step="0.0001" oninput="updateAll()"/>
+        </div>
+        <div class="coeff-item">
+          <label>β₂ EngineSize</label>
+          <input type="number" id="b-engine" value="0.09" step="0.0001" oninput="updateAll()"/>
+        </div>
+        <div class="coeff-item">
+          <label>β₃ Cylinders</label>
+          <input type="number" id="b-cyl" value="0.07" step="0.0001" oninput="updateAll()"/>
+        </div>
+        <div class="coeff-item">
+          <label>β₄ Horsepower</label>
+          <input type="number" id="b-hp" value="0.0015" step="0.00001" oninput="updateAll()"/>
+        </div>
+        <div class="coeff-item">
+          <label>β₅ agg_wheel_wheelbase</label>
+          <input type="number" id="b-agg" value="0.000045" step="0.0000001" oninput="updateAll()"/>
+        </div>
+      </div>
+      <div class="rse-row">
+        <label>Residual Std. Error (σ) — for confidence band</label>
+        <input type="number" id="rse" value="0.22" step="0.0001" oninput="updateAll()"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="output-panel">
+    <div class="result-card">
+      <div class="result-top">
+        <p class="result-eyebrow">Predicted Retail Price</p>
+        <div class="result-price" id="result-price">$<span id="price-int">--,---</span></div>
+        <p class="result-ci">95% Confidence Interval</p>
+        <div class="ci-range">
+          <div class="ci-item">
+            <div class="ci-item-label">LOWER</div>
+            <div class="ci-item-val" id="ci-low">—</div>
+          </div>
+          <div class="ci-item">
+            <div class="ci-item-label">UPPER</div>
+            <div class="ci-item-val" id="ci-high">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="result-bottom">
+        <p class="formula-title">Linear Predictor</p>
+        <div class="formula-box">
+          <span class="hl">log(SRP)</span> = β₀<br>
+          &nbsp;&nbsp; + β₁·<span class="hl">Hybrid</span>(<span class="val" id="f-hybrid">0</span>)<br>
+          &nbsp;&nbsp; + β₂·<span class="hl">EngineSize</span>(<span class="val" id="f-engine">3.5</span>)<br>
+          &nbsp;&nbsp; + β₃·<span class="hl">Cylinders</span>(<span class="val" id="f-cyl">6</span>)<br>
+          &nbsp;&nbsp; + β₄·<span class="hl">Horsepower</span>(<span class="val" id="f-hp">210</span>)<br>
+          &nbsp;&nbsp; + β₅·<span class="hl">agg</span>(<span class="val" id="f-agg">4325</span>)
+        </div>
+        <div class="log-val">
+          <span>log(SRP) =</span>
+          <span id="log-pred">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /layout -->
+
+<script>
+  // ─── SLIDER FILL UTILITY ───
+  function syncSlider(el, valId, unit, prefix) {
+    const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+    const pct = ((val - min) / (max - min)) * 100;
+    el.style.setProperty('--pct', pct + '%');
+
+    // format display
+    let display = Number.isInteger(val) ? val : val.toFixed(1);
+    const container = document.getElementById(valId);
+    container.innerHTML = display + (unit ? `<span class="unit">${unit}</span>` : '');
+  }
+
+  // Initialize fill positions on load
+  document.querySelectorAll('input[type=range].filled').forEach(el => {
+    const min = parseFloat(el.min), max = parseFloat(el.max), val = parseFloat(el.value);
+    el.style.setProperty('--pct', ((val - min) / (max - min)) * 100 + '%');
+  });
+
+  // ─── MAIN PREDICTION ───
+  function updateAll() {
+    // Read toggle
+    const hybrid = document.getElementById('hybrid-toggle').checked ? 1 : 0;
+    document.getElementById('hybrid-status').textContent = hybrid ? 'Yes' : 'No';
+    document.getElementById('hybrid-status').style.color = hybrid ? 'var(--accent2)' : 'var(--text-dim)';
+
+    // Read sliders
+    const engineSize = parseFloat(document.getElementById('sl-engine').value);
+    const cylinders  = parseFloat(document.getElementById('sl-cyl').value);
+    const horsepower = parseFloat(document.getElementById('sl-hp').value);
+    const weight     = parseFloat(document.getElementById('sl-weight').value);
+    const wheelbase  = parseFloat(document.getElementById('sl-wb').value);
+    const agg        = weight + wheelbase;
+
+    // Read coefficients
+    const b0   = parseFloat(document.getElementById('b-intercept').value) || 0;
+    const b1   = parseFloat(document.getElementById('b-hybrid').value)    || 0;
+    const b2   = parseFloat(document.getElementById('b-engine').value)    || 0;
+    const b3   = parseFloat(document.getElementById('b-cyl').value)       || 0;
+    const b4   = parseFloat(document.getElementById('b-hp').value)        || 0;
+    const b5   = parseFloat(document.getElementById('b-agg').value)       || 0;
+    const rse  = parseFloat(document.getElementById('rse').value)         || 0;
+
+    // Predict
+    const logPred = b0 + b1*hybrid + b2*engineSize + b3*cylinders + b4*horsepower + b5*agg;
+    const predPrice = Math.exp(logPred);
+
+    // CI: mean prediction ± 1.96 * rse (approximate; exact form needs leverage)
+    const ciHalf = 1.96 * rse;
+    const ciLow  = Math.exp(logPred - ciHalf);
+    const ciHigh = Math.exp(logPred + ciHalf);
+
+    // Format currency
+    const fmt = v => '$' + Math.round(v).toLocaleString('en-US');
+
+    // Update DOM
+    document.getElementById('price-int').textContent = Math.round(predPrice).toLocaleString('en-US');
+    document.getElementById('ci-low').textContent  = fmt(ciLow);
+    document.getElementById('ci-high').textContent = fmt(ciHigh);
+    document.getElementById('log-pred').textContent = logPred.toFixed(5);
+
+    // Formula display
+    document.getElementById('f-hybrid').textContent = hybrid;
+    document.getElementById('f-engine').textContent = engineSize.toFixed(1);
+    document.getElementById('f-cyl').textContent    = cylinders;
+    document.getElementById('f-hp').textContent     = horsepower;
+    document.getElementById('f-agg').textContent    = agg.toLocaleString('en-US');
+
+    // Flash animation
+    const priceEl = document.getElementById('result-price');
+    priceEl.classList.remove('flash');
+    void priceEl.offsetWidth;
+    priceEl.classList.add('flash');
+  }
+
+  // Init on load
+  updateAll();
+</script>
+</body>
+</html>
