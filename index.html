@@ -72,20 +72,7 @@
       font-size: 13px;
       max-width: 520px;
     }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(232,197,71,.12);
-      border: 1px solid rgba(232,197,71,.3);
-      color: var(--accent);
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      margin-top: 20px;
-      letter-spacing: .05em;
-    }
-    .badge::before { content: '⚠'; font-size: 12px; }
+
 
     /* ─── LAYOUT ─── */
     .layout {
@@ -329,76 +316,6 @@
     }
     .log-val span { color: var(--text); font-weight: 700; }
 
-    /* ─── COEFF EDITOR ─── */
-    .coeff-section {
-      margin-top: 40px;
-      padding: 0;
-    }
-    .coeff-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    @media (max-width: 900px) { .coeff-grid { grid-template-columns: 1fr; } }
-    .coeff-item label {
-      display: block;
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .coeff-item input[type=number] {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-      padding: 9px 12px;
-      border-radius: 6px;
-      outline: none;
-      transition: border-color .15s;
-    }
-    .coeff-item input[type=number]:focus { border-color: var(--accent); }
-    .coeff-hint {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 16px;
-      line-height: 1.5;
-    }
-    .coeff-hint code {
-      background: var(--surface2);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: var(--accent2);
-      font-size: 11px;
-    }
-    .rse-row {
-      margin-top: 12px;
-    }
-    .rse-row label {
-      font-size: 10px;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-      display: block;
-    }
-    .rse-row input[type=number] {
-      width: 100%;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      font-family: 'Space Mono', monospace;
-      font-size: 13px;
-      padding: 9px 12px;
-      border-radius: 6px;
-      outline: none;
-      transition: border-color .15s;
-    }
-    .rse-row input:focus { border-color: var(--accent); }
-
     /* divider */
     .divider {
       height: 1px;
@@ -423,6 +340,7 @@
   <p class="hero-sub">
     Weighted least-squares model predicting suggested retail price from vehicle specs.
     Adjust sliders to see the predicted price update in real time.
+  </p>
 </header>
 
 <!-- ─── MAIN LAYOUT ─── -->
@@ -494,46 +412,6 @@
              oninput="syncSlider(this,'val-wb','in','');updateAll()"/>
     </div>
 
-    <div class="divider"></div>
-
-    <!-- ─── COEFFICIENT EDITOR ─── -->
-    <div class="coeff-section">
-      <p class="section-title">Model Coefficients</p>
-      <p class="coeff-hint">
-        Run <code>model_weighted_v2$coefficients</code> and <code>summary(model_weighted_v2)$sigma</code>
-        in R, then paste your values here.
-      </p>
-      <div class="coeff-grid">
-        <div class="coeff-item">
-          <label>β₀ Intercept</label>
-          <input type="number" id="b-intercept" value="8.195259" step="0.000001" oninput="updateAll()"/>
-        </div>
-        <div class="coeff-item">
-          <label>β₁ Hybrid</label>
-          <input type="number" id="b-hybrid" value="0.4284086" step="0.000001" oninput="updateAll()"/>
-        </div>
-        <div class="coeff-item">
-          <label>β₂ EngineSize</label>
-          <input type="number" id="b-engine" value="-0.211355" step="0.000001" oninput="updateAll()"/>
-        </div>
-        <div class="coeff-item">
-          <label>β₃ Cylinders</label>
-          <input type="number" id="b-cyl" value="0.03355922" step="0.000001" oninput="updateAll()"/>
-        </div>
-        <div class="coeff-item">
-          <label>β₄ Horsepower</label>
-          <input type="number" id="b-hp" value="0.004539131" step="0.0000001" oninput="updateAll()"/>
-        </div>
-        <div class="coeff-item">
-          <label>β₅ agg_wheel_wheelbase</label>
-          <input type="number" id="b-agg" value="0.000004206845" step="0.0000000001" oninput="updateAll()"/>
-        </div>
-      </div>
-      <div class="rse-row">
-        <label>Residual Std. Error (σ) — for confidence band</label>
-        <input type="number" id="rse" value="0.1698061" step="0.0000001" oninput="updateAll()"/>
-      </div>
-    </div>
   </div>
 
   <!-- RIGHT: OUTPUT -->
@@ -593,7 +471,18 @@
     el.style.setProperty('--pct', ((val - min) / (max - min)) * 100 + '%');
   });
 
-  // ─── MAIN PREDICTION ───
+  // Coefficients from model_weighted_v2
+  const B0  =  8.195259e+00;
+  const B1  =  4.284086e-01;  // Hybrid
+  const B2  = -2.113550e-01;  // EngineSize
+  const B3  =  3.355922e-02;  // Cylinders
+  const B4  =  4.539131e-03;  // Horsepower
+  const B5  =  4.206845e-06;  // agg_wheel_wheelbase (Weight * WheelBase)
+  // SE on log scale back-calculated from R's predict() CI at default car:
+  // exp(pred)=42059, lwr=39077, upr=45269
+  // SE = (log(45268.83) - log(39077.12)) / (2 * 1.96)
+  const SE_LOG = (Math.log(45268.83) - Math.log(39077.12)) / (2 * 1.96);
+
   function updateAll() {
     // Read toggle
     const hybrid = document.getElementById('hybrid-toggle').checked ? 1 : 0;
@@ -606,25 +495,15 @@
     const horsepower = parseFloat(document.getElementById('sl-hp').value);
     const weight     = parseFloat(document.getElementById('sl-weight').value);
     const wheelbase  = parseFloat(document.getElementById('sl-wb').value);
-    const agg        = weight + wheelbase;
-
-    // Read coefficients
-    const b0   = parseFloat(document.getElementById('b-intercept').value) || 0;
-    const b1   = parseFloat(document.getElementById('b-hybrid').value)    || 0;
-    const b2   = parseFloat(document.getElementById('b-engine').value)    || 0;
-    const b3   = parseFloat(document.getElementById('b-cyl').value)       || 0;
-    const b4   = parseFloat(document.getElementById('b-hp').value)        || 0;
-    const b5   = parseFloat(document.getElementById('b-agg').value)       || 0;
-    const rse  = parseFloat(document.getElementById('rse').value)         || 0;
+    const agg        = weight * wheelbase;  // Weight * WheelBase
 
     // Predict
-    const logPred = b0 + b1*hybrid + b2*engineSize + b3*cylinders + b4*horsepower + b5*agg;
+    const logPred = B0 + B1*hybrid + B2*engineSize + B3*cylinders + B4*horsepower + B5*agg;
     const predPrice = Math.exp(logPred);
 
-    // CI: mean prediction ± 1.96 * rse (approximate; exact form needs leverage)
-    const ciHalf = 1.96 * rse;
-    const ciLow  = Math.exp(logPred - ciHalf);
-    const ciHigh = Math.exp(logPred + ciHalf);
+    // CI using SE back-calculated from R's predict() output
+    const ciLow  = Math.exp(logPred - 1.96 * SE_LOG);
+    const ciHigh = Math.exp(logPred + 1.96 * SE_LOG);
 
     // Format currency
     const fmt = v => '$' + Math.round(v).toLocaleString('en-US');
@@ -640,7 +519,7 @@
     document.getElementById('f-engine').textContent = engineSize.toFixed(1);
     document.getElementById('f-cyl').textContent    = cylinders;
     document.getElementById('f-hp').textContent     = horsepower;
-    document.getElementById('f-agg').textContent    = agg.toLocaleString('en-US');
+    document.getElementById('f-agg').textContent    = agg.toLocaleString('en-US') + ' ('+weight+'×'+wheelbase+')';
 
     // Flash animation
     const priceEl = document.getElementById('result-price');
